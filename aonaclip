@@ -1,0 +1,33 @@
+#!/bin/bash
+if [ $# -lt 4 ]; then
+        echo "Usage: $0 <youtube's URL> <HH:mm:ss from time> <HH:mm:ss to time> <output_file_name>"
+        exit 1
+fi
+
+echo "processing..."
+
+from=$(date "+%s" -d "UTC 01/01/1970 $2")
+to=$(date "+%s" -d "UTC 01/01/1970 $3")
+
+from_pre=$(($from - 30))
+
+if [ $from_pre -lt 0 ]
+then
+        from_pre=0
+fi
+
+from_pre_command_print=$(date -u "+%T" -d @$from_pre)
+from_command_print=$(date -u "+%T" -d @$(($from - $from_pre)))$(grep -o "\..*" <<< $2)
+to_command_print=$(date -u "+%T" -d @$(($to - $from_pre)))$(grep -o "\..*" <<< $3)
+
+command="yt-dlp --external-downloader ffmpeg --external-downloader-args 'ffmpeg_i:-ss $from_pre_command_print -t $to_command_print' $1 -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -o temp.mp4"
+forward="ffmpeg -i temp.mp4 -ss 30 -async 1 $4"
+clean="rm temp.mp4"
+
+echo "downloading with the following command:"
+echo $command
+bash -c "$command"
+echo "Trimming..."
+bash -c "$forward"
+echo "Cleaning..."
+bash -c "$clean"
